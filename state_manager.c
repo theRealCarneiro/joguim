@@ -1,39 +1,34 @@
 #include <stdio.h>
 #include <stdlib.h>
-
-typedef unsigned int (*fn_ptr)();
-typedef unsigned int (*fn_ptr_fl)(float);
-
-typedef struct State{
-	fn_ptr init;
-	fn_ptr_fl update;
-	fn_ptr_fl draw;
-	fn_ptr destroy;
-} State;
-
-typedef struct StateStack{
-	State *state;	
-	struct StateStack *next;
-} StateStack;
+#include "state_manager.h"
 
 StateStack *create_stack(){
 	return (StateStack*)malloc(sizeof(StateStack));
 }
 
-void push(StateStack **head, State *c){
+int push_state_stack(StateStack **head, State *c){
 	StateStack *s = create_stack();
 	s->state = c;
 	s->next = *head;
 	*head = s;
+	if (c->init != NULL) return c->init();
+	return 1;
 }
 
-StateStack *pop(StateStack **p){
-	StateStack *temp = *p;
-	*p = temp->next;
-	free(temp);
-	return *p;
+int pop_state_stack(StateStack **s){
+	StateStack *stack = *s;
+	State *state = stack->state;
+	*s = stack->next;
+	free(stack);
+	if(state->destroy != NULL) return state->destroy();
+	return 1;
 }
 
-State *top(StateStack *head){
+int update_state_stack(StateStack *s, float deltatime){
+	if (s->state->update != NULL) return s->state->update(deltatime);
+	return 1;
+}
+
+State *top_state_stack(StateStack *head){
 	return head->state;
 }
